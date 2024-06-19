@@ -5,13 +5,14 @@
 ### Setup github token PAT:
 
 ```shell
-export GITHUB_TOKEN=...
+export GITHUB_REPOSITORY=https://github.com/Ch4s3r/github-actions-runner-kubernetes
+export GITHUB_TOKEN=
 ```
 
 ### Create kubernetes cluster:
 
 ```shell
-k3d create cluster
+k3d cluster create -i latest
 ```
 
 ### Install ARC:
