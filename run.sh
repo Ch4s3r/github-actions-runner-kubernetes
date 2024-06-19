@@ -1,6 +1,5 @@
 # export GITHUB_TOKEN=...
-
-k3d create cluster
+# k3d create cluster
 
 kubectl create ns arc-systems
 kubectl create ns arc-runners
