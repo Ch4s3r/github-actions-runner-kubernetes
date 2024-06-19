@@ -1,1 +1,1 @@
-# github-actions-runner-kubernetes
+# Testing github actions runners on Kubernetes using [ARC](https://github.com/actions/actions-runner-controller)
