@@ -5,5 +5,8 @@ on:
 jobs:
   Explore-GitHub-Actions:
     runs-on: arc-runner-set
+    strategy:
+      matrix:
+        string: ['string1', 'string2', 'string3', 'string4', 'string5', 'string6', 'string7', 'string8', 'string9', 'string10']
     steps:
-    - run: echo "🎉 This job uses runner scale set runners!"
+    - run: echo "🎉 This job uses runner scale set runners with string ${{ matrix.string }}!"
