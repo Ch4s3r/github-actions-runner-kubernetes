@@ -10,6 +10,9 @@ jobs:
       matrix:
         os: [ ubuntu-latest, arc-runner-set ]
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: "write"
+      contents: "read"
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v12
