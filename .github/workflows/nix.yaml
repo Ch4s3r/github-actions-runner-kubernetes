@@ -12,14 +12,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt update && sudo apt install -y curl xz-utils
-      - uses: DeterminateSystems/nix-installer-action@v12
-        with:
-          init: "none"
-      - name: Check and Set Permissions
-        run: |
-          ls -ld /nix/var/nix/profiles/per-user || true
-          sudo chmod -R 755 /nix/var/nix/profiles/per-user || true
-          sudo chown -R $USER /nix/var/nix/profiles/per-user || true
-      - uses: DeterminateSystems/magic-nix-cache-action@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      # - uses: DeterminateSystems/magic-nix-cache-action@main
       - run: nix --version
