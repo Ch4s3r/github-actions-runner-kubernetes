@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       id-token: "write"
-      contents: "read"
+      contents: "write"
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v12
