@@ -12,7 +12,5 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          init: none
+      - uses: DeterminateSystems/nix-installer-action@v12
       - run: nix --version
