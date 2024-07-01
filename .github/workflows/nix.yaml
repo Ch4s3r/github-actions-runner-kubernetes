@@ -10,9 +10,6 @@ jobs:
       matrix:
         os: [ ubuntu-latest, arc-runner-set ]
     runs-on: ${{ matrix.os }}
-    permissions:
-      id-token: "write"
-      contents: "write"
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update && sudo apt install -y curl xz-utils
