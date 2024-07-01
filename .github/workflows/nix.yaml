@@ -20,6 +20,8 @@ jobs:
           init: "none"
       - name: Check and Set Permissions
         run: |
+          ls -ld /nix || true
           sudo chmod -R 755 /nix || true
+          sudo chown -R $USER /nix || true
       - uses: DeterminateSystems/magic-nix-cache-action@v7
       - run: nix --version
