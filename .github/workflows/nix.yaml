@@ -9,7 +9,7 @@ jobs:
     runs-on: arc-runner-set
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y curl
+      - run: sudo apt-get update && sudo apt-get install -y curl xz
       - uses: cachix/install-nix-action@v27
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
