@@ -6,7 +6,10 @@ on:
 
 jobs:
   check:
-    runs-on: arc-runner-set
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, arc-runner-set ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y curl xz-utils
