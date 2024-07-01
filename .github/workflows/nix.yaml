@@ -6,7 +6,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-22.04
+    runs-on: arc-runner-test
     permissions:
       id-token: "write"
       contents: "read"
