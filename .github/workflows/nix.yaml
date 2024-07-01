@@ -20,8 +20,6 @@ jobs:
           init: "none"
       - name: Check and Set Permissions
         run: |
-          ls -ld /nix/var/nix/profiles/per-user || true
-          sudo chmod -R 755 /nix/var/nix/profiles/per-user || true
-          sudo chown -R $USER /nix/var/nix/profiles/per-user || true
+          sudo chmod -R 755 /nix || true
       - uses: DeterminateSystems/magic-nix-cache-action@v7
       - run: nix --version
