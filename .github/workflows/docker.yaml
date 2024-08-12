@@ -4,7 +4,6 @@ on:
 jobs:
   build:
     runs-on: arc-runner-set
-    container: catthehacker/ubuntu:custom-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU
