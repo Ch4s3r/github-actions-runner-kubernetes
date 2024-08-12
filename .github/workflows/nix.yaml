@@ -5,24 +5,11 @@ on:
 
 jobs:
   check:
-    strategy:
-      matrix:
-        os: [ arc-runner-set ]
-    runs-on: ${{ matrix.os }}
+    runs-on: arc-runner-set
     permissions:
       id-token: "write"
       contents: "read"
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          init: none
-      - run: nix --version
-      - run: nix shell nixpkgs#kubectl -c kubectl
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.11.0
-        with:
-          skip-nix-installation: true
-      - run: devbox init
-      - run: devbox global add jfrog-cli
-      - run: jf
