@@ -12,7 +12,6 @@ jobs:
     permissions:
       id-token: "write"
       contents: "read"
-    container: catthehacker/ubuntu:custom-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
