@@ -9,6 +9,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest, arc-runner-set ]
     runs-on: ${{ matrix.os }}
+    container: catthehacker/ubuntu:custom-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
