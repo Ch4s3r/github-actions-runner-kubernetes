@@ -3,7 +3,10 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    runs-on: arc-runner-set
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, arc-runner-set ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU
