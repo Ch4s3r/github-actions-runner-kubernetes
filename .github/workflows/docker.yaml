@@ -4,6 +4,7 @@ on:
 jobs:
   build:
     runs-on: arc-runner-set
+    container: alpine/curl
     steps:
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.11.0
