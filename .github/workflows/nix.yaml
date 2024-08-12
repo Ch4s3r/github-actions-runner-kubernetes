@@ -9,9 +9,20 @@ jobs:
       matrix:
         os: [ ubuntu-latest, arc-runner-set ]
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: "write"
+      contents: "read"
     container: catthehacker/ubuntu:custom-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      # - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          init: none
+          kvm: false
+          modify-profile: true
+      # - run: sudo chown --recursive "$USER" /nix/var/nix/profiles/per-user
+      # - run: sudo chmod --recursive 777 /nix/var/nix/profiles/per-user
+#       - uses: DeterminateSystems/magic-nix-cache-action@main
+#       - uses: DeterminateSystems/flake-checker-action@main
       - run: nix --version
+      - run: nix shell nixpkgs#kubectl -c kubectl
