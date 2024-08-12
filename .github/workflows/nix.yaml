@@ -16,9 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      # - run: sudo chown --recursive "$USER" /nix/var/nix/profiles/per-user
-      # - run: sudo chmod --recursive 777 /nix/var/nix/profiles/per-user
-#       - uses: DeterminateSystems/magic-nix-cache-action@main
-#       - uses: DeterminateSystems/flake-checker-action@main
+        with:
+          init: none
       - run: nix --version
       - run: nix shell nixpkgs#kubectl -c kubectl
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.11.0
+        with:
+          skip-nix-installation: true
+      - run: devbox global add jfrog-cli
+      - run: jf
