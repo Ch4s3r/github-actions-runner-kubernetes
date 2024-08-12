@@ -16,8 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          init: none
       # - run: sudo chown --recursive "$USER" /nix/var/nix/profiles/per-user
       # - run: sudo chmod --recursive 777 /nix/var/nix/profiles/per-user
 #       - uses: DeterminateSystems/magic-nix-cache-action@main
