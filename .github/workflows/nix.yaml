@@ -24,5 +24,6 @@ jobs:
         uses: jetify-com/devbox-install-action@v0.11.0
         with:
           skip-nix-installation: true
+      - run: devbox init
       - run: devbox global add jfrog-cli
       - run: jf
