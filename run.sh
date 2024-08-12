@@ -14,6 +14,7 @@ helm install arc-runner-set \
     --create-namespace \
     --set githubConfigUrl=$GITHUB_REPOSITORY \
     --set githubConfigSecret=github-token \
+    --values gha-runner-scale-set-values.yaml \
     oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
 kubectl create secret generic github-token \
    --namespace=arc-runners \
@@ -21,3 +22,7 @@ kubectl create secret generic github-token \
 kubectl create secret generic github-token \
    --namespace=arc-systems \
    --from-literal=github_token=$GITHUB_TOKEN
+
+# --values gha-runner-scale-set-values.yaml \
+# --set template.spec.containers.runner.image=catthehacker/ubuntu:full-22.04 \
+# --set template.spec.containers.runner.command= \
