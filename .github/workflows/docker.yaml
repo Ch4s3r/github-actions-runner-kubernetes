@@ -4,7 +4,7 @@ on:
 jobs:
   build:
     runs-on: arc-runner-set
-    container: ghcr.io/actions/actions-runner:latest
+    # container: ghcr.io/actions/actions-runner:latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU
