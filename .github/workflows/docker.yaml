@@ -4,7 +4,7 @@ on:
 jobs:
   build:
     runs-on: arc-runner-set
-    container: alpine/curl
+    container: catthehacker/ubuntu:custom-22.04
     steps:
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.11.0
