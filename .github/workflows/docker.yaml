@@ -17,4 +17,5 @@ jobs:
       #   uses: jetify-com/devbox-install-action@v0.11.0
       # - run: devbox global add git
       - run: docker ps
+      - run: docker run hello-world
       # - run: git status
