@@ -19,7 +19,7 @@ jobs:
         with:
           init: none
       - run: sudo chown --recursive "$USER" /nix
-      - run: sudo chmod 777 --recursive /nix
+      - run: sudo chmod --recursive 777 /nix
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.11.0
         with:
