@@ -18,6 +18,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
         with:
           init: none
+      - run: sudo chown --recursive "$USER" /nix
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.11.0
         with:
