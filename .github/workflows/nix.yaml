@@ -14,5 +14,11 @@ jobs:
       contents: "read"
     steps:
       - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+        with:
+          init: none
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.11.0
+        with:
+          skip-nix-installation: true
