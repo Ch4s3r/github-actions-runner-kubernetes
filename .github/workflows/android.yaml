@@ -1,4 +1,4 @@
-name: Nix
+name: Android
 
 on:
   workflow_dispatch:
