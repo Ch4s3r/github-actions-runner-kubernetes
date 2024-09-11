@@ -9,7 +9,9 @@ jobs:
       id: cache-ollama
       uses: actions/cache@v4
       with:
-        path: ~/.ollama
+        path: |
+          ~/.ollama
+          /usr/share/ollama/.ollama/models
         key: ${{ runner.os }}-ollama
     - name: Install ollama
       run: curl -fsSL https://ollama.com/install.sh | sh
@@ -20,5 +22,3 @@ jobs:
     - name: Call ollama API
       run: |
         curl -d '{"model": "phi3:mini", "stream": false, "prompt":"Whatever I say, answer with Yes"}' http://localhost:11434/api/generate
-    - run: ls -nath ~/.ollama
-    - run: find / -iname models
