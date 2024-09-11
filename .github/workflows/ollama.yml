@@ -9,7 +9,7 @@ jobs:
       id: cache-ollama
       uses: actions/cache@v4
       with:
-        path: /home/runner/.ollama
+        path: .ollama
         key: ${{ runner.os }}-ollama
     - name: Install ollama
       run: curl -fsSL https://ollama.com/install.sh | sh
