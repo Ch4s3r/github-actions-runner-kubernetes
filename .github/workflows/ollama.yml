@@ -5,6 +5,12 @@ jobs:
   summarize:
     runs-on: ubuntu-latest
     steps:
+    - name: Cache
+      id: cache-ollama
+      uses: actions/cache@v4
+      with:
+        path: ~/.ollama/models
+        key: ${{ runner.os }}-ollama
     - name: Install ollama
       run: curl -fsSL https://ollama.com/install.sh | sh
     - name: Run ollama
