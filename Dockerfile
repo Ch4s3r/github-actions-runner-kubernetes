@@ -1,2 +1,2 @@
-FROM ghcr.io/actions/actions-runner:latest
-RUN sudo apt install -y curl xz-utils git
+FROM ghcr.io/actions/actions-runner:2.319.1
+RUN sudo apt install -y jq git unzip curl

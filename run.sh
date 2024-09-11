@@ -1,8 +1,12 @@
-# export GITHUB_REPOSITORY=https://github.com/Ch4s3r/github-actions-runner-kubernetes
-# export GITHUB_TOKEN=
+set -euo pipefail
+# set -x GITHUB_REPOSITORY https://github.com/Ch4s3r/github-actions-runner-kubernetes
+# set -x GITHUB_TOKEN $GITHUB_TOKEN
 
-# k3d cluster create -i latest
+# docker build . -t ch4s3r/actions-runner:2.319.1-0
 
+minikube delete
+minikube start
+# minikube image load ch4s3r/actions-runner:2.319.1-0
 helm install arc \
     --create-namespace \
     --namespace arc-systems \
@@ -11,10 +15,14 @@ helm install arc \
 helm install arc-runner-set \
     --create-namespace \
     --namespace arc-runners \
-    --create-namespace \
     --set githubConfigUrl=$GITHUB_REPOSITORY \
     --set githubConfigSecret=github-token \
-    --values gha-runner-scale-set-values.yaml \
+    --set minRunners=10 \
+    --set containerMode.type=dind \
+    --set template.spec.containers[0].name=runner \
+    --set template.spec.containers[0].image=ch4s3r/actions-runner:2.319.1-1 \
+    --set template.spec.containers[0].command[0]="/home/runner/run.sh" \
+    --set runnerGroup=ghe-local-arc \
     oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
 kubectl create secret generic github-token \
    --namespace=arc-runners \
@@ -22,7 +30,9 @@ kubectl create secret generic github-token \
 kubectl create secret generic github-token \
    --namespace=arc-systems \
    --from-literal=github_token=$GITHUB_TOKEN
+k9s
 
 # --values gha-runner-scale-set-values.yaml \
 # --set template.spec.containers.runner.image=catthehacker/ubuntu:full-22.04 \
 # --set template.spec.containers.runner.command= \
+# --values gha-runner-scale-set-values.yaml \

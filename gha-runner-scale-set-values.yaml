@@ -1,17 +1,20 @@
-containerMode:
-  type: "dind"
-  # kubernetesModeWorkVolumeClaim:
-  #   # accessModes: ["ReadWriteOnce"]
-  #   # storageClassName: "standard"
-  #   resources:
-  #     requests:
-  #       storage: 1Gi
-  # kubernetesModeServiceAccount:
-  #   annotations:
-template:
-  spec:
-    containers:
-      - name: runner
-#        image: ghcr.io/actions/actions-runner:latest
-        image: actions-runner:local
-        command: ["/home/runner/run.sh"]
+# minRunners: 2
+# containerMode:
+#   type: "dind"
+# #   kubernetesModeWorkVolumeClaim:
+# #     accessModes: ["ReadWriteOnce"]
+# #     # storageClassName: "standard"
+# #     resources:
+# #       requests:
+# #         storage: 1Gi
+# #   kubernetesModeServiceAccount:
+# #     annotations:
+# template:
+#   spec:
+#     containers:
+#       - name: runner
+#         image: actions-runner:local
+#         # image: ghcr.io/myoung34/docker-github-actions-runner:ubuntu-noble
+#         # image: ghcr.io/actions-runner-controller/actions-runner-controller/actions-runner:ubuntu-22.04
+#         # pullPolicy: Never
+#         # command: ["/home/runner/run.sh"]
