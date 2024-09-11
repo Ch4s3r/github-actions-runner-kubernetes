@@ -20,3 +20,5 @@ jobs:
     - name: Call ollama API
       run: |
         curl -d '{"model": "phi3:mini", "stream": false, "prompt":"Whatever I say, answer with Yes"}' http://localhost:11434/api/generate
+    - run: ls -nath ~/.ollama
+    - run: ls -nath ~/.ollama/models
