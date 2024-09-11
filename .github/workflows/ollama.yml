@@ -11,7 +11,7 @@ jobs:
       with:
         path: |
           ~/.ollama
-          /usr/share/ollama/.ollama/models
+          /usr/share/ollama/.ollama
         key: ${{ runner.os }}-ollama
     - name: Install ollama
       run: curl -fsSL https://ollama.com/install.sh | sh
