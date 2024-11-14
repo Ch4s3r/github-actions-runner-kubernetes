@@ -5,14 +5,29 @@
 ### Setup github token PAT:
 
 ```shell
-export GITHUB_REPOSITORY=https://github.com/Ch4s3r/github-actions-runner-kubernetes
-export GITHUB_TOKEN=
+export GITHUB_REPOSGITHUB_CONFIG_URLITORY=https://github.com/Ch4s3r/github-actions-runner-kubernetes
+export GITHUB_PAT=
 ```
 
-### Create kubernetes cluster:
+### Create kubernetes cluster
+
+Install k3s as kuebrnetes provider for example
 
 ```shell
-k3d cluster create -i latest
+curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode=644
+```
+
+Link the local kubeconfig to have access to the kubernetes cluster via cli
+```shell
+mkdir -p $HOME/.kube
+ln -s /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
+```
+
+Verify you have access to it via cli
+
+```shell
+kubectl get pods -A
+helm list -A
 ```
 
 ### Install ARC:
