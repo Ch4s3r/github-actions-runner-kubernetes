@@ -5,7 +5,7 @@
 ### Setup github token PAT:
 
 ```shell
-export GITHUB_REPOSGITHUB_CONFIG_URLITORY=https://github.com/Ch4s3r/github-actions-runner-kubernetes
+export GITHUB_CONFIG_URL=https://github.com/Ch4s3r/github-actions-runner-kubernetes
 export GITHUB_PAT=
 ```
 
