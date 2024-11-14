@@ -35,3 +35,9 @@ helm list -A
 ```shell
 sh run.sh
 ```
+
+### Uninstall k3s
+
+```shell
+/usr/local/bin/k3s-uninstall.sh
+```
