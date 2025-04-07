@@ -6,22 +6,19 @@ set -euo pipefail
 # curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode=644
 # export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-NAMESPACE="arc-systems"
-kubectl create ns "${NAMESPACE}"
-helm upgrade -i arc \
-    --namespace "${NAMESPACE}" \
-    oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
-INSTALLATION_NAME="arc-runner-set"
-NAMESPACE="arc-runners"
-kubectl create ns "${NAMESPACE}"
-kubectl create secret generic github-credentials \
-  --namespace "${NAMESPACE}" \
-  --from-literal=github_token="${GITHUB_PAT}"
-helm upgrade -i "${INSTALLATION_NAME}" \
-    --namespace "${NAMESPACE}" \
-    --set githubConfigUrl="${GITHUB_CONFIG_URL}" \
-    --set githubConfigSecret=github-credentials \
-    --set containerMode.type=dind \
-    --set minRunners=50 \
-    --set runnerGroup=ghe-local-arc \
-    oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
+helm repo add jetstack https://charts.jetstack.io --force-update
+helm upgrade \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --set crds.enabled=true
+
+helm repo add actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller
+helm upgrade --install --namespace actions-runner-system --create-namespace\
+  --set=authSecret.create=true\
+  --set=authSecret.github_token="$GITHUB_COM_TOKEN"\
+  --wait actions-runner-controller actions-runner-controller/actions-runner-controller
+
+kubectl apply -f runnerdeployment.yaml
+
+kubectl get runners -w
