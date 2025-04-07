@@ -4,7 +4,7 @@ on:
 
 jobs:
   Explore-GitHub-Actions:
-    runs-on: self-hosted
+    runs-on: arc-runner-set
     strategy:
       matrix:
         string: ['string1', 'string2', 'string3', 'string4']

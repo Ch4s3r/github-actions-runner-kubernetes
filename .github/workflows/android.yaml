@@ -7,7 +7,7 @@ jobs:
   check:
     strategy:
       matrix:
-        os: [ ubuntu-latest, self-hosted ]
+        os: [ ubuntu-latest, arc-runner-set ]
     runs-on: ${{ matrix.os }}
     permissions:
       id-token: "write"
