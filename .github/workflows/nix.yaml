@@ -14,13 +14,12 @@ jobs:
       contents: "read"
     steps:
       - uses: actions/checkout@v4
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
-        with:
-          init: none
-      - run: sudo chown --recursive "$USER" /nix
-      - run: sudo chmod --recursive 777 /nix
+
       - name: Install devbox
-        uses: jetify-com/devbox-install-action@v0.11.0
-        with:
-          skip-nix-installation: true
+        uses: jetify-com/devbox-install-action@v0.12.0
+
+      - name: Run arbitrary commands
+        run: devbox run -- echo "done!"
+
+      - name: Run a script called test
+        run: devbox run test
