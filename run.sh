@@ -22,6 +22,7 @@ helm upgrade -i "${INSTALLATION_NAME}" \
     --set githubConfigUrl="${GITHUB_CONFIG_URL}" \
     --set githubConfigSecret=github-credentials \
     --set containerMode.type=dind \
-    --set minRunners=50 \
     oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
 #    --set runnerGroup=ghe-local-arc \
+#    --set minRunners=50 \
+
