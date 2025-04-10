@@ -17,6 +17,11 @@ jobs:
 #        uses: docker/setup-qemu-action@v3
 #      - name: Set up Docker Buildx
 #        uses: docker/setup-buildx-action@v3
+      - name: Install fuse-overlayfs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fuse-overlayfs
+          sudo modprobe fuse
       - run: podman ps
 #      - run: podman build -t my-app:1.0 -f ./Dockerfile .
       - run: podman run hello-world
