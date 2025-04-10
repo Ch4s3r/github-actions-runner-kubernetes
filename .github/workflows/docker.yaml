@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container:
       image: quay.io/podman/stable
-      options: --user 1000
+#      options: --user 1000
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU
