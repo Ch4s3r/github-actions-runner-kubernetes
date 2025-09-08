@@ -15,12 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
       - name: Setup Attic cache
         uses: ryanccn/attic-action@v0
         with:
           endpoint: ${{ secrets.ATTIC_ENDPOINT }}
           cache: ${{ secrets.ATTIC_CACHE }}
           token: ${{ secrets.ATTIC_TOKEN }}
-      - uses: DeterminateSystems/flake-checker-action@main
       - name: Run `nix build`
         run: nix build .
