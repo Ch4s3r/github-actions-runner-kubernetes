@@ -2,8 +2,6 @@ name: Determinate Nix
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   lints:
