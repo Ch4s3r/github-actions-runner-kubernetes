@@ -1,4 +1,4 @@
-name: Determinate Nix
+name: Nix
 
 on:
   workflow_dispatch:
