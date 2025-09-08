@@ -21,10 +21,7 @@ helm upgrade -i "${INSTALLATION_NAME}" \
     --namespace "${NAMESPACE}" \
     --set githubConfigUrl="${GITHUB_CONFIG_URL}" \
     --set githubConfigSecret=github-credentials \
-    --set containerMode.type=kubernetes \
-    --set containerMode.kubernetesModeWorkVolumeClaim.accessModes[0]=ReadWriteOnce \
-    --set containerMode.kubernetesModeWorkVolumeClaim.storageClassName=local-path \
-    --set containerMode.kubernetesModeWorkVolumeClaim.resources.requests.storage=1Gi \
+    --set containerMode.type=dind \
     --set minRunners=1 \
     oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
 #    --set runnerGroup=ghe-local-arc \

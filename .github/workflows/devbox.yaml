@@ -1,0 +1,25 @@
+name: Nix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, arc-runner-set ]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: "write"
+      contents: "read"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.12.0
+
+      - name: Run arbitrary commands
+        run: devbox run -- echo "done!"
+
+      - name: Run a script called test
+        run: devbox run success
