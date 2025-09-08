@@ -1,0 +1,34 @@
+name: Determinate Nix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  lints:
+    name: Build
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, arc-runner-set ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/apt
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/apt-list') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+      - name: Install packages if no cache
+        if: steps.cache-apt-packages.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xz-utils
+          mkdir -p ~/.cache/apt
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
+      - name: Run `nix build`
+        run: nix build .
