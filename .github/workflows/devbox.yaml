@@ -16,11 +16,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install xz-utils
+        run: sudo apt-get update && sudo apt-get install -y xz-utils
+
+      - name: Install gh CLI
+
         run: |
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-          sudo apt-add-repository https://cli.github.com/packages
-          sudo apt-get update && sudo apt-get install -y xz-utils gh
+          set -euo pipefail
+          echo "Installing GitHub CLI (gh)..."
+          if command -v gh >/dev/null 2>&1; then
+            echo "gh already installed: $(gh --version)"
+            exit 0
+          fi
+
+          # Prefer Debian/Ubuntu apt installation
+          if [ -f /etc/debian_version ] || command -v apt-get >/dev/null 2>&1; then
+            echo "Detected Debian/Ubuntu-like system; installing via apt"
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg >/dev/null 2>&1 || true
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg || true
+            echo "deb [signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+            sudo apt-get update
+            sudo apt-get install -y gh || true
+          elif command -v snap >/dev/null 2>&1; then
+            echo "Installing gh via snap"
+            sudo snap install gh --classic
+          elif command -v brew >/dev/null 2>&1; then
+            echo "Installing gh via brew"
+            brew install gh
+          else
+            echo "Could not detect supported package manager (apt, snap, brew). Attempting fallback download."
+            ARCH=$(uname -m)
+            case "$ARCH" in
+              x86_64) ARCH=amd64 ;;
+              aarch64|arm64) ARCH=arm64 ;;
+              *) ARCH=amd64 ;;
+            esac
+            TMPDIR=$(mktemp -d)
+            # Try Debian package if available
+            if curl -fsSL -o "$TMPDIR/gh.deb" "https://github.com/cli/cli/releases/latest/download/gh_${ARCH}.deb" 2>/dev/null; then
+              sudo dpkg -i "$TMPDIR/gh.deb" || sudo apt-get -f install -y || true
+            else
+              echo "Fallback: download tarball and install binary"
+              curl -fsSL -o "$TMPDIR/gh.tar.gz" "https://github.com/cli/cli/releases/latest/download/gh_${ARCH}.tar.gz" || true
+              if [ -f "$TMPDIR/gh.tar.gz" ]; then
+                tar -xzf "$TMPDIR/gh.tar.gz" -C "$TMPDIR"
+                sudo cp "$TMPDIR"/gh_*/bin/gh /usr/local/bin/ || true
+              else
+                echo "Failed to download gh automatically. Please install gh manually on this runner."
+              fi
+            fi
+          fi
+
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+          else
+            echo "gh not installed"
+            exit 0
+          fi
 
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.12.0
