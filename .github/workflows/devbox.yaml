@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install xz-utils
-        run: sudo apt-get update && sudo apt-get install -y xz-utils
+        run: sudo apt-get update && sudo apt-get install -y xz-utils gh
 
       - name: Install devbox
         uses: jetify-com/devbox-install-action@v0.12.0
