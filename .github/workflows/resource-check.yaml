@@ -61,22 +61,27 @@ jobs:
 
       - name: Verify pod-level cgroup actually caps nested containers
         run: |
-          echo "=== CPU throttling test: burn all host CPUs from inside a nested container for 10s ==="
+          echo "=== CPU throttling test: burn one busy-loop per host core for 8s, no package installs ==="
+          before_throttled=$(awk '/^nr_throttled/{print $2}' /sys/fs/cgroup/cpu.stat)
           docker run --rm alpine:3 sh -c '
-            apk add --no-cache stress-ng >/dev/null 2>&1;
-            stress-ng --cpu $(nproc) --cpu-method matrixprod --timeout 10 >/dev/null 2>&1
+            for i in $(seq 1 $(nproc)); do
+              ( while true; do :; done ) &
+            done
+            sleep 8
+            kill $(jobs -p) 2>/dev/null
           '
-          echo "cpu.stat on the dind pod cgroup (nonzero nr_throttled/throttled_usec proves the 4 CPU cap held):"
+          after_throttled=$(awk '/^nr_throttled/{print $2}' /sys/fs/cgroup/cpu.stat)
+          echo "nr_throttled before=$before_throttled after=$after_throttled"
+          echo "(increase proves the 4 CPU cap was enforced against $(nproc) host cores of demand)"
           cat /sys/fs/cgroup/cpu.stat
 
-          echo "=== Memory limit test: try to allocate 12GiB inside a nested container against an 8Gi pod cap ==="
+          echo "=== Memory limit test: write 12GiB into tmpfs (resident, non-reclaimable) against an 8Gi pod cap ==="
           set +e
-          docker run --rm --memory=12g --memory-swap=12g alpine:3 sh -c '
-            apk add --no-cache stress-ng >/dev/null 2>&1;
-            stress-ng --vm 1 --vm-bytes 12G --vm-keep --timeout 10
+          docker run --rm --shm-size=13g alpine:3 sh -c '
+            dd if=/dev/zero of=/dev/shm/fill bs=1M count=12000
           '
           exit_code=$?
           set -e
-          echo "nested container exit code: $exit_code (137 = OOM-killed, proves the 8Gi pod cap held)"
+          echo "nested container exit code: $exit_code (137 = OOM-killed, proves the 8Gi pod cap held; 0 would mean it was NOT capped)"
           echo "memory.events on the dind pod cgroup (oom/oom_kill > 0 confirms enforcement):"
           cat /sys/fs/cgroup/memory.events
