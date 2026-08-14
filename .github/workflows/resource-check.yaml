@@ -61,17 +61,27 @@ jobs:
 
       - name: Verify pod-level cgroup actually caps nested containers
         run: |
-          echo "=== CPU throttling test: demand all $(nproc) host cores for 10s inside a nested container ==="
+          echo "=== Install stress-ng once, reuse for both tests ==="
+          docker run --rm alpine:3 sh -c 'apk update && apk add stress-ng && stress-ng --version'
+
+          echo "=== CPU throttling test: demand all host cores for 15s inside a nested container ==="
           before_throttled=$(awk '/^nr_throttled/{print $2}' /sys/fs/cgroup/cpu.stat)
-          docker run --rm progrium/stress --cpu "$(nproc)" --timeout 10s
+          docker run --rm alpine:3 sh -c '
+            apk add --no-cache stress-ng
+            echo "nproc inside nested container: $(nproc)"
+            stress-ng --cpu 0 --cpu-method matrixprod --metrics-brief --timeout 15s
+          '
           after_throttled=$(awk '/^nr_throttled/{print $2}' /sys/fs/cgroup/cpu.stat)
           echo "nr_throttled before=$before_throttled after=$after_throttled"
-          echo "(increase proves the 4 CPU cap was enforced against $(nproc) host cores of demand)"
+          echo "(increase proves the 4 CPU cap was enforced against the host core count of demand)"
           cat /sys/fs/cgroup/cpu.stat
 
           echo "=== Memory limit test: try to hold 12GiB resident inside a nested container against an 8Gi pod cap ==="
           set +e
-          docker run --rm progrium/stress --vm 1 --vm-bytes 12000M --vm-hang 0 --timeout 10s
+          docker run --rm alpine:3 sh -c '
+            apk add --no-cache stress-ng
+            stress-ng --vm 1 --vm-bytes 12g --vm-keep --metrics-brief --timeout 15s
+          '
           exit_code=$?
           set -e
           echo "nested container exit code: $exit_code (137 = OOM-killed, proves the 8Gi pod cap held; 0 would mean it was NOT capped)"
