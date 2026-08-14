@@ -76,22 +76,20 @@ jobs:
           echo "(increase proves the 4 CPU cap was enforced against the host core count of demand)"
           cat /sys/fs/cgroup/cpu.stat
 
-          echo "=== Memory limit test: 4 workers each touching 4GiB (16GiB total) against an 8Gi pod cap, polling memory.current live ==="
-          set +e
-          docker run --rm alpine:3 sh -c '
+          echo "=== Memory limit test: one worker touching 16GiB against an 8Gi pod cap, watched via docker stats (dind daemon's own accounting) ==="
+          docker run -d --name memstress alpine:3 sh -c '
             apk add --no-cache stress-ng
-            stress-ng --vm 4 --vm-bytes 4g --vm-keep --metrics-brief --timeout 20s
-          ' &
-          stress_pid=$!
-          for i in $(seq 1 20); do
+            stress-ng --vm 1 --vm-bytes 16g --vm-keep --timeout 25s
+          '
+          for i in $(seq 1 25); do
             sleep 1
-            cur=$(cat /sys/fs/cgroup/memory.current)
-            awk -v s="$i" -v c="$cur" 'BEGIN {printf "t=%ss memory.current=%.2f GiB\n", s, c/1024/1024/1024}'
-            kill -0 "$stress_pid" 2>/dev/null || break
+            status=$(docker inspect -f '{{.State.Status}}' memstress 2>/dev/null) || break
+            docker stats --no-stream --format "t=${i}s {{.Name}} MemUsage={{.MemUsage}}" memstress 2>/dev/null
+            [ "$status" = "running" ] || break
           done
-          wait "$stress_pid"
-          exit_code=$?
-          set -e
-          echo "nested container exit code: $exit_code (137/non-zero = OOM-killed, proves the 8Gi pod cap held; 0 would mean it was NOT capped)"
-          echo "memory.events on the dind pod cgroup (oom/oom_kill > 0 confirms enforcement):"
-          cat /sys/fs/cgroup/memory.events
+          docker wait memstress >/dev/null 2>&1 || true
+          exit_code=$(docker inspect -f '{{.State.ExitCode}}' memstress)
+          oom_killed=$(docker inspect -f '{{.State.OOMKilled}}' memstress)
+          echo "exit_code=$exit_code oom_killed=$oom_killed"
+          echo "(OOMKilled=true or a nonzero exit proves the 8Gi pod cap held against 16GiB of demand; OOMKilled=false with exit 0 would mean it was NOT capped)"
+          docker rm -f memstress >/dev/null 2>&1 || true
