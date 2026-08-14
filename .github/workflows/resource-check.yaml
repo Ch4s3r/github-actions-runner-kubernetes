@@ -76,14 +76,22 @@ jobs:
           echo "(increase proves the 4 CPU cap was enforced against the host core count of demand)"
           cat /sys/fs/cgroup/cpu.stat
 
-          echo "=== Memory limit test: try to hold 12GiB resident inside a nested container against an 8Gi pod cap ==="
+          echo "=== Memory limit test: 4 workers each touching 4GiB (16GiB total) against an 8Gi pod cap, polling memory.current live ==="
           set +e
           docker run --rm alpine:3 sh -c '
             apk add --no-cache stress-ng
-            stress-ng --vm 1 --vm-bytes 12g --vm-keep --metrics-brief --timeout 15s
-          '
+            stress-ng --vm 4 --vm-bytes 4g --vm-keep --metrics-brief --timeout 20s
+          ' &
+          stress_pid=$!
+          for i in $(seq 1 20); do
+            sleep 1
+            cur=$(cat /sys/fs/cgroup/memory.current)
+            awk -v s="$i" -v c="$cur" 'BEGIN {printf "t=%ss memory.current=%.2f GiB\n", s, c/1024/1024/1024}'
+            kill -0 "$stress_pid" 2>/dev/null || break
+          done
+          wait "$stress_pid"
           exit_code=$?
           set -e
-          echo "nested container exit code: $exit_code (137 = OOM-killed, proves the 8Gi pod cap held; 0 would mean it was NOT capped)"
+          echo "nested container exit code: $exit_code (137/non-zero = OOM-killed, proves the 8Gi pod cap held; 0 would mean it was NOT capped)"
           echo "memory.events on the dind pod cgroup (oom/oom_kill > 0 confirms enforcement):"
           cat /sys/fs/cgroup/memory.events
