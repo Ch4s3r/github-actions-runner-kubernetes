@@ -1,0 +1,60 @@
+name: Resource Check
+on:
+  workflow_dispatch:
+
+jobs:
+  check-resources:
+    runs-on: arc-runner-set
+    steps:
+      - name: Host resources
+        run: |
+          echo "=== Runner Host Resources ==="
+          echo "--- CPU ---"
+          nproc
+          cat /proc/cpuinfo | grep "model name" | head -1
+          echo "--- Memory ---"
+          free -h
+          echo "--- Cgroup limits ---"
+          if [ -f /sys/fs/cgroup/cpu.max ]; then
+            read quota period < /sys/fs/cgroup/cpu.max
+            if [ "$quota" = "max" ]; then
+              echo "CPU limit: unlimited"
+            else
+              awk -v q="$quota" -v p="$period" 'BEGIN {printf "CPU limit: %.2f CPUs\n", q/p}'
+            fi
+          fi
+          if [ -f /sys/fs/cgroup/memory.max ]; then
+            mem=$(cat /sys/fs/cgroup/memory.max)
+            if [ "$mem" = "max" ]; then
+              echo "RAM limit: unlimited"
+            else
+              awk -v m="$mem" 'BEGIN {printf "RAM limit: %.2f GiB\n", m/1024/1024/1024}'
+            fi
+            used=$(cat /sys/fs/cgroup/memory.current)
+            awk -v m="$used" 'BEGIN {printf "RAM used:  %.2f GiB\n", m/1024/1024/1024}'
+          fi
+
+      - name: Docker (dind) container resources
+        run: |
+          docker run --rm alpine:3 sh -c '
+            echo "=== Docker Container Resources ===";
+            echo "--- CPU ---";
+            nproc;
+            echo "--- Memory ---";
+            free -h 2>/dev/null || cat /proc/meminfo | head -3;
+            echo "--- Cgroup limits ---";
+            read quota period < /sys/fs/cgroup/cpu.max;
+            if [ "$quota" = "max" ]; then
+              echo "CPU limit: unlimited";
+            else
+              awk -v q="$quota" -v p="$period" "BEGIN {printf \"CPU limit: %.2f CPUs\n\", q/p}";
+            fi;
+            mem=$(cat /sys/fs/cgroup/memory.max);
+            if [ "$mem" = "max" ]; then
+              echo "RAM limit: unlimited";
+            else
+              awk -v m="$mem" "BEGIN {printf \"RAM limit: %.2f GiB\n\", m/1024/1024/1024}";
+            fi;
+            used=$(cat /sys/fs/cgroup/memory.current);
+            awk -v m="$used" "BEGIN {printf \"RAM used:  %.2f GiB\n\", m/1024/1024/1024}"
+          '
