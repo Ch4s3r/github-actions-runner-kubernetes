@@ -1,20 +1,74 @@
-# minRunners: 2
-# containerMode:
-#   type: "dind"
-# #   kubernetesModeWorkVolumeClaim:
-# #     accessModes: ["ReadWriteOnce"]
-# #     # storageClassName: "standard"
-# #     resources:
-# #       requests:
-# #         storage: 1Gi
-# #   kubernetesModeServiceAccount:
-# #     annotations:
-# template:
-#   spec:
-#     containers:
-#       - name: runner
-#         image: actions-runner:local
-#         # image: ghcr.io/myoung34/docker-github-actions-runner:ubuntu-noble
-#         # image: ghcr.io/actions-runner-controller/actions-runner-controller/actions-runner:ubuntu-22.04
-#         # pullPolicy: Never
-#         # command: ["/home/runner/run.sh"]
+## containerMode must stay unset when customizing template.spec — the chart
+## overwrites template.spec if containerMode.type is set. This template
+## replicates the dind pod spec from the chart defaults, adding resources.
+template:
+  spec:
+    initContainers:
+      - name: init-dind-externals
+        image: ghcr.io/actions/actions-runner:latest
+        command: ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+      - name: dind
+        image: docker:dind
+        args:
+          - dockerd
+          - --host=unix:///var/run/docker.sock
+          - --group=$(DOCKER_GROUP_GID)
+        env:
+          - name: DOCKER_GROUP_GID
+            value: "123"
+        securityContext:
+          privileged: true
+        restartPolicy: Always
+        startupProbe:
+          exec:
+            command:
+              - docker
+              - info
+          initialDelaySeconds: 0
+          failureThreshold: 24
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:latest
+        command: ["/home/runner/run.sh"]
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+            value: "120"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+    volumes:
+      - name: work
+        emptyDir: {}
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
+        emptyDir: {}
