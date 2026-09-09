@@ -34,10 +34,15 @@ jobs:
             awk -v m="$used" 'BEGIN {printf "RAM used:  %.2f GiB\n", m/1024/1024/1024}'
           fi
 
-      - name: Docker (dind) container resources
+      - name: Install Podman
         run: |
-          docker run --rm alpine:3 sh -c '
-            echo "=== Docker Container Resources ===";
+          sudo apt-get update -qq && sudo apt-get install -y -qq podman
+          podman --version
+
+      - name: Podman container resources
+        run: |
+          podman run --rm alpine:3 sh -c '
+            echo "=== Podman Container Resources ===";
             echo "--- CPU ---";
             nproc;
             echo "--- Memory ---";
@@ -59,14 +64,14 @@ jobs:
             awk -v m="$used" "BEGIN {printf \"RAM used:  %.2f GiB\n\", m/1024/1024/1024}"
           '
 
-      - name: Verify pod-level cgroup actually caps nested containers
+      - name: Verify runner cgroup actually caps nested podman containers
         run: |
           echo "=== Install stress-ng once, reuse for both tests ==="
-          docker run --rm alpine:3 sh -c 'apk update && apk add stress-ng && stress-ng --version'
+          podman run --rm alpine:3 sh -c 'apk update && apk add stress-ng && stress-ng --version'
 
           echo "=== CPU throttling test: demand all host cores for 15s inside a nested container ==="
           before_throttled=$(awk '/^nr_throttled/{print $2}' /sys/fs/cgroup/cpu.stat)
-          docker run --rm alpine:3 sh -c '
+          podman run --rm alpine:3 sh -c '
             apk add --no-cache stress-ng
             echo "nproc inside nested container: $(nproc)"
             stress-ng --cpu 0 --cpu-method matrixprod --metrics-brief --timeout 15s
@@ -76,27 +81,27 @@ jobs:
           echo "(increase proves the 4 CPU cap was enforced against the host core count of demand)"
           cat /sys/fs/cgroup/cpu.stat
 
-          echo "=== Memory limit test: one worker touching 16GiB against an 8Gi pod cap, watched via docker stats (dind daemon's own accounting) ==="
-          docker run -d --name memstress alpine:3 sh -c '
+          echo "=== Memory limit test: one worker touching 16GiB against an 8Gi runner cap, watched via podman stats ==="
+          podman run -d --name memstress alpine:3 sh -c '
             apk add --no-cache stress-ng
             stress-ng --vm 1 --vm-bytes 16g --vm-keep --timeout 25s
           '
           for i in $(seq 1 25); do
             sleep 1
-            status=$(docker inspect -f '{{.State.Status}}' memstress 2>/dev/null) || break
-            docker stats --no-stream --format "t=${i}s {{.Name}} MemUsage={{.MemUsage}}" memstress 2>/dev/null
+            status=$(podman inspect -f '{{.State.Status}}' memstress 2>/dev/null) || break
+            podman stats --no-stream --format "t=${i}s {{.Name}} MemUsage={{.MemUsage}}" memstress 2>/dev/null
             [ "$status" = "running" ] || break
           done
-          docker wait memstress >/dev/null 2>&1 || true
-          exit_code=$(docker inspect -f '{{.State.ExitCode}}' memstress)
-          oom_killed=$(docker inspect -f '{{.State.OOMKilled}}' memstress)
+          podman wait memstress >/dev/null 2>&1 || true
+          exit_code=$(podman inspect -f '{{.State.ExitCode}}' memstress 2>/dev/null)
+          oom_killed=$(podman inspect -f '{{.State.OOMKilled}}' memstress 2>/dev/null)
           echo "exit_code=$exit_code oom_killed=$oom_killed"
-          echo "(OOMKilled=true or a nonzero exit proves the 8Gi pod cap held against 16GiB of demand; OOMKilled=false with exit 0 would mean it was NOT capped)"
-          docker rm -f memstress >/dev/null 2>&1 || true
+          echo "(OOMKilled=true or a nonzero exit proves the 8Gi runner cap held against 16GiB of demand; OOMKilled=false with exit 0 would mean it was NOT capped)"
+          podman rm -f memstress >/dev/null 2>&1 || true
 
       - name: Verify the runner container's own cgroup enforces its resources.limits.memory
         run: |
-          echo "=== Install stress-ng directly in the runner container (no nested docker this time) ==="
+          echo "=== Install stress-ng directly in the runner container (no nested podman this time) ==="
           sudo apt-get update -qq && sudo apt-get install -y -qq stress-ng
           stress-ng --version
 

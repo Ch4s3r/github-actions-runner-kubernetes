@@ -1,74 +1,29 @@
-## containerMode must stay unset when customizing template.spec — the chart
-## overwrites template.spec if containerMode.type is set. This template
-## replicates the dind pod spec from the chart defaults, adding resources.
+githubConfigUrl: "https://github.com/Ch4s3r/github-actions-runner-kubernetes"
+minRunners: 1
+
+## Single-container template (no dind sidecar): workflows install and use Podman directly
+## instead of relying on a docker.sock. `privileged: true` is required for Podman to create
+## containers at all (fuse-overlayfs needs /dev/fuse, which Kubernetes only grants privileged
+## containers). Podman doesn't run a persistent daemon the way dockerd does — each container it
+## starts is a direct fork/exec child of the calling process, so it stays correctly accounted
+## under this container's own 8Gi cgroup even though `privileged: true` gives it the host's
+## cgroup namespace (unlike dockerd, which manages its own nested containerd and computes cgroup
+## placement from a self-reported path that ends up wrong when cgroupns doesn't match — see
+## https://github.com/moby/moby/issues/45378, https://github.com/kubernetes/kubernetes/issues/119853).
 template:
   spec:
-    initContainers:
-      - name: init-dind-externals
-        image: ghcr.io/actions/actions-runner:latest
-        command: ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
-        volumeMounts:
-          - name: dind-externals
-            mountPath: /home/runner/tmpDir
-      - name: dind
-        image: docker:dind
-        args:
-          - dockerd
-          - --host=unix:///var/run/docker.sock
-          - --group=$(DOCKER_GROUP_GID)
-        env:
-          - name: DOCKER_GROUP_GID
-            value: "123"
-        securityContext:
-          privileged: true
-        restartPolicy: Always
-        startupProbe:
-          exec:
-            command:
-              - docker
-              - info
-          initialDelaySeconds: 0
-          failureThreshold: 24
-          periodSeconds: 5
-        resources:
-          requests:
-            cpu: "2"
-            memory: "4Gi"
-          limits:
-            cpu: "2"
-            memory: "4Gi"
-        volumeMounts:
-          - name: work
-            mountPath: /home/runner/_work
-          - name: dind-sock
-            mountPath: /var/run
-          - name: dind-externals
-            mountPath: /home/runner/externals
     containers:
       - name: runner
-        image: ghcr.io/actions/actions-runner:latest
+        image: ghcr.io/actions/actions-runner:2.337.0
         command: ["/home/runner/run.sh"]
-        env:
-          - name: DOCKER_HOST
-            value: unix:///var/run/docker.sock
-          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
-            value: "120"
+        securityContext:
+          privileged: true
         resources:
-          requests:
-            cpu: "2"
-            memory: "4Gi"
           limits:
-            cpu: "2"
-            memory: "4Gi"
+            memory: "8Gi"
         volumeMounts:
           - name: work
             mountPath: /home/runner/_work
-          - name: dind-sock
-            mountPath: /var/run
     volumes:
       - name: work
-        emptyDir: {}
-      - name: dind-sock
-        emptyDir: {}
-      - name: dind-externals
         emptyDir: {}
