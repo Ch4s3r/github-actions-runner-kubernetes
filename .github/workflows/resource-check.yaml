@@ -93,3 +93,23 @@ jobs:
           echo "exit_code=$exit_code oom_killed=$oom_killed"
           echo "(OOMKilled=true or a nonzero exit proves the 8Gi pod cap held against 16GiB of demand; OOMKilled=false with exit 0 would mean it was NOT capped)"
           docker rm -f memstress >/dev/null 2>&1 || true
+
+      - name: Verify the runner container's own cgroup enforces its resources.limits.memory
+        run: |
+          echo "=== Install stress-ng directly in the runner container (no nested docker this time) ==="
+          sudo apt-get update -qq && sudo apt-get install -y -qq stress-ng
+          stress-ng --version
+
+          echo "=== Memory limit test: one worker touching 6GiB directly against the runner container's own memory limit ==="
+          stress-ng --vm 1 --vm-bytes 6g --vm-keep --timeout 20s &
+          pid=$!
+          for i in $(seq 1 20); do
+            sleep 1
+            cur=$(cat /sys/fs/cgroup/memory.current 2>/dev/null)
+            awk -v m="$cur" -v t="$i" 'BEGIN {printf "t=%ss runner cgroup memory.current=%.2f GiB\n", t, m/1024/1024/1024}'
+            kill -0 "$pid" 2>/dev/null || { echo "stress-ng process is gone at t=${i}s (likely OOM-killed by the runner container's own cgroup limit)"; break; }
+          done
+          wait "$pid"
+          exit_code=$?
+          echo "stress-ng exit_code=$exit_code"
+          echo "(a nonzero/killed-by-signal exit code proves the runner container's resources.limits.memory was enforced against 6GiB of demand; exit_code=0 would mean it was NOT capped)"
