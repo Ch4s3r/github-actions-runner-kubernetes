@@ -1,0 +1,9 @@
+#cloud-config
+users:
+  - default
+  - name: ubuntu
+    ssh_authorized_keys:
+      - __SSH_PUBKEY__
+
+runcmd:
+  - curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode=644

@@ -9,35 +9,28 @@ export GITHUB_CONFIG_URL=https://github.com/Ch4s3r/github-actions-runner-kuberne
 export GITHUB_PAT=
 ```
 
-### Create kubernetes cluster
+### Create kubernetes cluster and install ARC
 
-Install k3s as kuebrnetes provider for example
+The cluster is a disposable Ubuntu 24.04 (arm64) VM booted with QEMU and provisioned
+with k3s via cloud-init — no minikube/Docker Desktop needed.
 
 ```shell
-curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode=644
+devenv shell   # or `direnv allow` once, then just `cd` into the repo
+up
 ```
 
-Link the local kubeconfig to have access to the kubernetes cluster via cli
-```shell
-mkdir -p $HOME/.kube
-ln -s /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
-```
+`up` tears down any previous VM, boots a fresh one, waits for k3s to come up, and
+installs the ARC controller + runner scale set against it. Re-run `up` any time to get a
+clean cluster. Overridable via env vars: `VM_MEMORY_MB` (default 32768), `VM_CPUS`
+(default 8), `SSH_PORT` (default 2222), `API_PORT` (default 16443), and `RUNNER_QOS`
+(`guaranteed` default — requests==limits on the runner pod — or `burstable`, which sets
+requests below limits to allow node overcommit).
 
-Verify you have access to it via cli
+Verify access via cli:
 
 ```shell
 kubectl get pods -A
 helm list -A
 ```
 
-### Install ARC:
-
-```shell
-sh run.sh
-```
-
-### Uninstall k3s
-
-```shell
-/usr/local/bin/k3s-uninstall.sh
-```
+To stop the VM without recreating it: `kill $(cat .vm/qemu.pid)`.

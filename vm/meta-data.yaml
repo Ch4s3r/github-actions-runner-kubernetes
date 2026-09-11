@@ -1,0 +1,2 @@
+instance-id: gha-runner-k3s
+local-hostname: gha-runner-k3s

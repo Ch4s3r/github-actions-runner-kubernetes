@@ -6,7 +6,7 @@ minRunners: 1
 ## containers at all (fuse-overlayfs needs /dev/fuse, which Kubernetes only grants privileged
 ## containers). Podman doesn't run a persistent daemon the way dockerd does — each container it
 ## starts is a direct fork/exec child of the calling process, so it stays correctly accounted
-## under this container's own 8Gi cgroup even though `privileged: true` gives it the host's
+## under this container's own memory cgroup even though `privileged: true` gives it the host's
 ## cgroup namespace (unlike dockerd, which manages its own nested containerd and computes cgroup
 ## placement from a self-reported path that ends up wrong when cgroupns doesn't match — see
 ## https://github.com/moby/moby/issues/45378, https://github.com/kubernetes/kubernetes/issues/119853).
@@ -19,8 +19,12 @@ template:
         securityContext:
           privileged: true
         resources:
+          requests:
+            memory: "12Gi"
+            cpu: "4"
           limits:
-            memory: "8Gi"
+            memory: "12Gi"
+            cpu: "4"
         volumeMounts:
           - name: work
             mountPath: /home/runner/_work

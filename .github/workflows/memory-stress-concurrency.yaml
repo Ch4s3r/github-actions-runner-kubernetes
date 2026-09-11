@@ -1,0 +1,41 @@
+name: Memory stress concurrency test
+on:
+  workflow_dispatch:
+    inputs:
+      instances:
+        description: "Number of concurrent stress jobs"
+        default: "4"
+      memory_gb:
+        description: "Memory to allocate per instance (GB)"
+        default: "10"
+      duration_seconds:
+        description: "How long each instance holds the memory"
+        default: "300"
+
+jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - id: gen
+        run: |
+          echo "matrix=$(seq 1 ${{ inputs.instances }} | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+
+  stress:
+    needs: generate-matrix
+    runs-on: arc-runner-set
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Identify runner pod
+        run: hostname; cat /etc/hostname
+      - name: Stress memory (${{ inputs.memory_gb }}GB for ${{ inputs.duration_seconds }}s)
+        run: |
+          sudo apt-get update && sudo apt-get install -y stress-ng
+          stress-ng --vm 1 --vm-bytes ${{ inputs.memory_gb }}g --vm-keep \
+            --timeout ${{ inputs.duration_seconds }}s
+      - name: Survived
+        run: echo "instance ${{ matrix.instance }} completed without being killed"

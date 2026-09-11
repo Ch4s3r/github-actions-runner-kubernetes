@@ -1,1 +1,5 @@
 .idea
+.vm/
+.devenv*
+devenv.local.nix
+.direnv/
