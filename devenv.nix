@@ -72,6 +72,8 @@
     export GITHUB_CONFIG_URL=https://github.com/Ch4s3r/github-actions-runner-kubernetes
     INSTALLATION_NAME="arc-runner-set"
 
+    kubectl apply -f vm/dind-apk-cache-pvc.yaml
+
     NAMESPACE="arc-systems"
     helm upgrade -i arc \
         --namespace "''${NAMESPACE}" \

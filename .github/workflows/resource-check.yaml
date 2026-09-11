@@ -34,6 +34,30 @@ jobs:
             awk -v m="$used" 'BEGIN {printf "RAM used:  %.2f GiB\n", m/1024/1024/1024}'
           fi
 
+      - name: Verify the dind sidecar's own cgroup caps nested docker containers
+        run: |
+          echo "=== Memory limit test: one worker touching 10GiB inside a nested docker container against the dind sidecar's own 10Gi cap ==="
+          docker run -d --name memtest debian:bookworm-slim sh -c '
+            apt-get update -qq && apt-get install -y -qq stress-ng >/dev/null
+            stress-ng --vm 1 --vm-bytes 10g --vm-keep --timeout 60s
+          '
+          for i in $(seq 1 90); do
+            sleep 2
+            status=$(docker inspect -f '{{.State.Status}}' memtest 2>/dev/null) || break
+            docker stats --no-stream --format "t=$((i*2))s {{.Name}} MemUsage={{.MemUsage}}" memtest 2>/dev/null
+            [ "$status" = "running" ] || break
+          done
+          docker wait memtest >/dev/null 2>&1 || true
+          exit_code=$(docker inspect -f '{{.State.ExitCode}}' memtest 2>/dev/null)
+          oom_killed=$(docker inspect -f '{{.State.OOMKilled}}' memtest 2>/dev/null)
+          echo "exit_code=$exit_code oom_killed=$oom_killed"
+          docker rm -f memtest >/dev/null 2>&1 || true
+          if [ "$oom_killed" != "true" ]; then
+            echo "::error::Nested docker container was NOT OOMKilled by the dind sidecar's 10Gi memory limit (oom_killed=$oom_killed, exit_code=$exit_code) — this reproduces the known dind cgroup-accounting bug (moby/moby#45378, kubernetes/kubernetes#119853): the nested container's memory usage escaped the sidecar's own cgroup entirely."
+            exit 1
+          fi
+          echo "(OOMKilled=true proves the dind sidecar's 10Gi cap held against 10GiB of nested container demand)"
+
       - name: Install Podman
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq podman
@@ -118,27 +142,3 @@ jobs:
           exit_code=$?
           echo "stress-ng exit_code=$exit_code"
           echo "(a nonzero/killed-by-signal exit code proves the runner container's resources.limits.memory was enforced against 6GiB of demand; exit_code=0 would mean it was NOT capped)"
-
-      - name: Verify the dind sidecar's own cgroup caps nested docker containers
-        run: |
-          echo "=== Memory limit test: one worker touching 10GiB inside a nested docker container against the dind sidecar's own 10Gi cap ==="
-          docker run -d --name memtest debian:bookworm-slim sh -c '
-            apt-get update -qq && apt-get install -y -qq stress-ng >/dev/null
-            stress-ng --vm 1 --vm-bytes 10g --vm-keep --timeout 60s
-          '
-          for i in $(seq 1 90); do
-            sleep 2
-            status=$(docker inspect -f '{{.State.Status}}' memtest 2>/dev/null) || break
-            docker stats --no-stream --format "t=$((i*2))s {{.Name}} MemUsage={{.MemUsage}}" memtest 2>/dev/null
-            [ "$status" = "running" ] || break
-          done
-          docker wait memtest >/dev/null 2>&1 || true
-          exit_code=$(docker inspect -f '{{.State.ExitCode}}' memtest 2>/dev/null)
-          oom_killed=$(docker inspect -f '{{.State.OOMKilled}}' memtest 2>/dev/null)
-          echo "exit_code=$exit_code oom_killed=$oom_killed"
-          docker rm -f memtest >/dev/null 2>&1 || true
-          if [ "$oom_killed" != "true" ]; then
-            echo "::error::Nested docker container was NOT OOMKilled by the dind sidecar's 10Gi memory limit (oom_killed=$oom_killed, exit_code=$exit_code) — this reproduces the known dind cgroup-accounting bug (moby/moby#45378, kubernetes/kubernetes#119853): the nested container's memory usage escaped the sidecar's own cgroup entirely."
-            exit 1
-          fi
-          echo "(OOMKilled=true proves the dind sidecar's 10Gi cap held against 10GiB of nested container demand)"

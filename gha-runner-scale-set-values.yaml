@@ -26,7 +26,7 @@ template:
           - /bin/sh
           - -c
           - >-
-            apk add --no-cache util-linux &&
+            apk add util-linux &&
             unshare --cgroup /bin/sh -c 'umount /sys/fs/cgroup && mount -t cgroup2 cgroup /sys/fs/cgroup && /usr/local/bin/dockerd-entrypoint.sh "$0" "$@"'
             "$0" "$@"
         args:
@@ -61,10 +61,14 @@ template:
             mountPath: /var/run
           - name: dind-externals
             mountPath: /home/runner/externals
+          - name: apk-cache
+            mountPath: /etc/apk/cache
     containers:
       - name: runner
         image: ghcr.io/actions/actions-runner:2.337.0
         command: ["/home/runner/run.sh"]
+        securityContext:
+          privileged: true
         env:
           - name: DOCKER_HOST
             value: unix:///var/run/docker.sock
@@ -72,11 +76,11 @@ template:
             value: "120"
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1"
+            memory: "8Gi"
+            cpu: "2"
           limits:
-            memory: "2Gi"
-            cpu: "1"
+            memory: "8Gi"
+            cpu: "2"
         volumeMounts:
           - name: work
             mountPath: /home/runner/_work
@@ -89,3 +93,6 @@ template:
         emptyDir: {}
       - name: dind-externals
         emptyDir: {}
+      - name: apk-cache
+        persistentVolumeClaim:
+          claimName: dind-apk-cache
