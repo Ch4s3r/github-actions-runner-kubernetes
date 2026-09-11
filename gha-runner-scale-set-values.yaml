@@ -1,33 +1,91 @@
 githubConfigUrl: "https://github.com/Ch4s3r/github-actions-runner-kubernetes"
 minRunners: 1
 
-## Single-container template (no dind sidecar): workflows install and use Podman directly
-## instead of relying on a docker.sock. `privileged: true` is required for Podman to create
-## containers at all (fuse-overlayfs needs /dev/fuse, which Kubernetes only grants privileged
-## containers). Podman doesn't run a persistent daemon the way dockerd does — each container it
-## starts is a direct fork/exec child of the calling process, so it stays correctly accounted
-## under this container's own memory cgroup even though `privileged: true` gives it the host's
-## cgroup namespace (unlike dockerd, which manages its own nested containerd and computes cgroup
-## placement from a self-reported path that ends up wrong when cgroupns doesn't match — see
-## https://github.com/moby/moby/issues/45378, https://github.com/kubernetes/kubernetes/issues/119853).
+## dind sidecar (native Kubernetes sidecar container: initContainer + restartPolicy: Always).
+## Under `privileged: true` in Kubernetes, dockerd sees the wrong cgroup mount (the host's root
+## cgroupfs view instead of this pod's own scoped view), so nested `docker run` containers'
+## memory usage never gets charged against this container's own resources.limits.memory — they
+## silently escape the cap entirely. Verified upstream fix (community-confirmed workaround, see
+## https://github.com/moby/moby/issues/45378 and https://github.com/kubernetes/kubernetes/issues/119853):
+## `unshare --cgroup` before starting dockerd creates a fresh cgroup namespace and remounts
+## /sys/fs/cgroup as cgroup2 inside it, giving dockerd the correct, pod-scoped view — so nested
+## containers it spawns are then properly accounted under (and capped by) this container's own
+## cgroup, exactly like the runner container's Podman-based nested containers already are.
 template:
   spec:
+    initContainers:
+      - name: init-dind-externals
+        image: ghcr.io/actions/actions-runner:2.337.0
+        command: ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+      - name: dind
+        image: docker:dind
+        command:
+          - /bin/sh
+          - -c
+          - >-
+            apk add --no-cache util-linux &&
+            unshare --cgroup /bin/sh -c 'umount /sys/fs/cgroup && mount -t cgroup2 cgroup /sys/fs/cgroup && /usr/local/bin/dockerd-entrypoint.sh "$0" "$@"'
+            "$0" "$@"
+        args:
+          - dockerd
+          - --host=unix:///var/run/docker.sock
+          - --group=$(DOCKER_GROUP_GID)
+        env:
+          - name: DOCKER_GROUP_GID
+            value: "123"
+        securityContext:
+          privileged: true
+        restartPolicy: Always
+        startupProbe:
+          exec:
+            command:
+              - docker
+              - info
+          initialDelaySeconds: 0
+          failureThreshold: 24
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "10Gi"
+            cpu: "2"
+          limits:
+            memory: "10Gi"
+            cpu: "2"
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
     containers:
       - name: runner
         image: ghcr.io/actions/actions-runner:2.337.0
         command: ["/home/runner/run.sh"]
-        securityContext:
-          privileged: true
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+            value: "120"
         resources:
           requests:
-            memory: "12Gi"
-            cpu: "4"
+            memory: "2Gi"
+            cpu: "1"
           limits:
-            memory: "12Gi"
-            cpu: "4"
+            memory: "2Gi"
+            cpu: "1"
         volumeMounts:
           - name: work
             mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
     volumes:
       - name: work
+        emptyDir: {}
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
         emptyDir: {}

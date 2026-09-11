@@ -81,7 +81,8 @@
 
     RUNNER_QOS_ARGS=()
     if [[ "''${RUNNER_QOS}" == "burstable" ]]; then
-      RUNNER_QOS_ARGS=(--set resources.requests.memory=2Gi --set resources.requests.cpu=1)
+      RUNNER_QOS_ARGS=(--set 'template.spec.containers[0].resources.requests.memory=2Gi' \
+                       --set 'template.spec.containers[0].resources.requests.cpu=1')
     fi
 
     NAMESPACE="arc-runners"
