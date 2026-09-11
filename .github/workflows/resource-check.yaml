@@ -36,12 +36,13 @@ jobs:
 
       - name: Verify the dind sidecar's own cgroup caps nested docker containers
         run: |
-          echo "=== Memory limit test: one worker touching 10GiB inside a nested docker container against the dind sidecar's own 10Gi cap ==="
-          docker run -d --name memtest debian:bookworm-slim sh -c '
-            apt-get update -qq && apt-get install -y -qq stress-ng >/dev/null
-            stress-ng --vm 1 --vm-bytes 10g --vm-keep --timeout 60s
+          echo "=== Memory limit test: one worker demanding 20GiB (well above the dind sidecar's own 10Gi cap) inside a nested docker container ==="
+          echo "=== 20g (not 10g) is deliberate: it can't possibly finish allocating without crossing the 10Gi boundary first, removing any ambiguity from stress-ng's own ramp/exit timing ==="
+          docker run -d --name memtest alpine:3 sh -c '
+            apk add --no-cache stress-ng >/dev/null 2>&1
+            stress-ng --vm 1 --vm-bytes 20g --vm-keep --timeout 60s
           '
-          for i in $(seq 1 90); do
+          for i in $(seq 1 60); do
             sleep 2
             status=$(docker inspect -f '{{.State.Status}}' memtest 2>/dev/null) || break
             docker stats --no-stream --format "t=$((i*2))s {{.Name}} MemUsage={{.MemUsage}}" memtest 2>/dev/null
