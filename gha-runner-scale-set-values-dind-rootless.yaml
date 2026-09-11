@@ -1,0 +1,96 @@
+githubConfigUrl: "https://github.com/Ch4s3r/github-actions-runner-kubernetes"
+minRunners: 1
+
+## dind-rootless variant — TESTED, DOES NOT START, kept for reference/documentation only.
+## NOT used by run.sh/devenv; the working config is gha-runner-scale-set-values.yaml.
+##
+## Result: dockerd fails with `[rootlesskit:parent] error: failed to start the child: fork/exec
+## /proc/self/exe: operation not permitted` — identical across every permission permutation tried:
+## bare privileged:true, + allowPrivilegeEscalation:true, + seccompProfile Unconfined, +
+## appArmorProfile Unconfined. The error never changed, meaning this isn't a Kubernetes
+## securityContext knob at all — rootlesskit's own nested user-namespace creation is being
+## blocked at a more fundamental level (see https://github.com/docker-library/docker/issues/330,
+## where multiple users hit the same class of unresolved uid_map/exec permission errors trying
+## dind-rootless under Kubernetes; one participant: "I've got the feeling that... it's not really
+## feasible"). Also note rootless dind still needs privileged:true regardless — a docker-library
+## maintainer confirmed it's required to disable seccomp/AppArmor/mount masks — so it was never
+## going to avoid privileged entirely; it was only being evaluated as a way to skip the unshare
+## --cgroup workaround, and it doesn't get far enough to test even that.
+template:
+  spec:
+    initContainers:
+      - name: init-dind-externals
+        image: ghcr.io/actions/actions-runner:2.337.0
+        command: ["cp", "-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+      - name: dind
+        image: docker:dind-rootless
+        env:
+          - name: DOCKER_TLS_CERTDIR
+            value: ""
+          - name: XDG_RUNTIME_DIR
+            value: /var/run
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+          seccompProfile:
+            type: Unconfined
+          appArmorProfile:
+            type: Unconfined
+          runAsUser: 1000
+          runAsGroup: 1000
+        restartPolicy: Always
+        startupProbe:
+          exec:
+            command:
+              - docker
+              - info
+          initialDelaySeconds: 0
+          failureThreshold: 24
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "10Gi"
+            cpu: "2"
+          limits:
+            memory: "10Gi"
+            cpu: "2"
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:2.337.0
+        command: ["/home/runner/run.sh"]
+        securityContext:
+          privileged: true
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+            value: "120"
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "2"
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+    volumes:
+      - name: work
+        emptyDir: {}
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
+        emptyDir: {}
